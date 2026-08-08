@@ -32,6 +32,7 @@ import json
 import hmac
 import hashlib
 from http.server import BaseHTTPRequestHandler
+from urllib.parse import urlparse, parse_qs
 
 import requests
 from supabase import create_client
@@ -40,27 +41,6 @@ from supabase import create_client
 # ===========================================================================
 # 1. CREDENCIALES
 # ---------------------------------------------------------------------------
-# NUNCA escribas estos valores aquí dentro. Van en dos lugares:
-#
-#   a) En tu computadora: archivo .env.local en la raíz del proyecto
-#      (para probar con "vercel dev"). Ese archivo NO se sube a GitHub.
-#
-#   b) En producción: Vercel → tu proyecto → Settings → Environment
-#      Variables. Ahí pegas cada nombre y su valor, y luego haces
-#      "Redeploy" para que la función los tome.
-#
-# Dónde consigue cada uno:
-#   MP_ACCESS_TOKEN     Mercado Pago → Tus integraciones → tu app →
-#                       Credenciales de producción → Access Token
-#   MP_WEBHOOK_SECRET   Mercado Pago → Webhooks → al configurar la URL
-#                       te muestra una "clave secreta". Cópiala.
-#   SUPABASE_URL        Supabase → Project Settings → API → Project URL
-#   SUPABASE_SERVICE_KEY Supabase → Project Settings → API → service_role
-#                       ⚠️ La service_role tiene permisos totales.
-#                          Solo vive en el servidor. Jamás en el HTML.
-#   RESEND_API_KEY      resend.com → API Keys (para enviar el correo)
-# ===========================================================================
-
 MP_ACCESS_TOKEN      = os.environ.get("MP_ACCESS_TOKEN", "")
 MP_WEBHOOK_SECRET    = os.environ.get("MP_WEBHOOK_SECRET", "")
 SUPABASE_URL         = os.environ.get("SUPABASE_URL", "")
@@ -68,25 +48,12 @@ SUPABASE_SERVICE_KEY = os.environ.get("SUPABASE_SERVICE_KEY", "")
 RESEND_API_KEY       = os.environ.get("RESEND_API_KEY", "")
 CORREO_REMITENTE     = os.environ.get("CORREO_REMITENTE", "hola@cosmosyesencia.com")
 
-# Nombre del bucket que creaste en Supabase → Storage.
-# ⚠️ Debe ser PRIVADO. Si es público, cualquiera con la ruta descarga el PDF
-#    sin pagar y las Signed URLs pierden sentido.
 BUCKET = "ebooks"
-
-# Cuánto dura el enlace antes de caducar, en segundos.
-# 172800 = 48 horas. Suficiente para que el cliente lo abra sin prisa.
 DURACION_ENLACE = 60 * 60 * 48
 
 
 # ===========================================================================
 # 2. CATÁLOGO
-# ---------------------------------------------------------------------------
-# La llave (izquierda) es el "external_reference": el texto que TÚ escribes
-# al crear el Link de Pago en Mercado Pago, en el campo "Referencia externa".
-# Debe coincidir exactamente, en minúsculas.
-#
-# "archivos" es la ruta dentro del bucket de Supabase Storage.
-# Si subiste el PDF a la raíz del bucket, la ruta es sólo el nombre.
 # ===========================================================================
 
 CATALOGO = {
@@ -113,21 +80,6 @@ CATALOGO = {
 # ===========================================================================
 
 def firma_valida(headers, payment_id):
-    """
-    Comprueba que el aviso venga realmente de Mercado Pago.
-
-    Mercado Pago manda dos encabezados:
-        x-signature:  ts=1704908010,v1=618c85345248dd820d5fd456...
-        x-request-id: un identificador del aviso
-
-    La receta oficial: se arma un texto con este formato exacto
-        id:<PAYMENT_ID>;request-id:<REQUEST_ID>;ts:<TS>;
-    se firma con HMAC-SHA256 usando tu clave secreta, y el resultado
-    debe ser idéntico al v1 que llegó.
-
-    Si no configuraste MP_WEBHOOK_SECRET, dejamos pasar el aviso
-    (útil sólo mientras pruebas). En producción, ponla siempre.
-    """
     if not MP_WEBHOOK_SECRET:
         print("AVISO: MP_WEBHOOK_SECRET vacío, no se validó la firma.")
         return True
@@ -155,12 +107,10 @@ def firma_valida(headers, payment_id):
         hashlib.sha256,
     ).hexdigest()
 
-    # compare_digest evita filtrar información por el tiempo de comparación.
     return hmac.compare_digest(calculada, v1)
 
 
 def consultar_pago(payment_id):
-    """Le pregunta a Mercado Pago los datos completos del pago."""
     respuesta = requests.get(
         f"https://api.mercadopago.com/v1/payments/{payment_id}",
         headers={"Authorization": f"Bearer {MP_ACCESS_TOKEN}"},
@@ -171,13 +121,6 @@ def consultar_pago(payment_id):
 
 
 def generar_enlaces(rutas):
-    """
-    Pide a Supabase Storage una Signed URL por cada PDF.
-
-    Una Signed URL es un enlace con una firma y una fecha de caducidad
-    incrustadas. Funciona aunque el bucket sea privado, y deja de
-    funcionar sola cuando pasa el tiempo que definimos arriba.
-    """
     supabase = create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY)
     enlaces = []
 
@@ -185,8 +128,6 @@ def generar_enlaces(rutas):
         resultado = supabase.storage.from_(BUCKET).create_signed_url(
             ruta, DURACION_ENLACE
         )
-        # Según la versión de supabase-py la llave viene como
-        # "signedURL" o "signedUrl". Aceptamos las dos.
         url = resultado.get("signedURL") or resultado.get("signedUrl")
         if url:
             enlaces.append(url)
@@ -195,37 +136,12 @@ def generar_enlaces(rutas):
 
 
 def registrar_venta(supabase_client, datos):
-    """
-    Guarda la venta en la tabla 'entregas' de Supabase.
-    Sirve para reenviar el enlace si al cliente se le venció.
-
-    Crea la tabla una sola vez en Supabase → SQL Editor:
-
-        create table entregas (
-          id           bigserial primary key,
-          payment_id   text unique not null,
-          producto     text not null,
-          correo       text,
-          monto        numeric,
-          creado_en    timestamptz default now()
-        );
-        alter table entregas enable row level security;
-        -- Sin políticas: sólo la service_role (este servidor) puede leerla.
-    """
     supabase_client.table("entregas").upsert(
         datos, on_conflict="payment_id"
     ).execute()
 
 
 def enviar_correo(destinatario, titulo, enlaces):
-    """
-    Envía el enlace de descarga con Resend (resend.com, plan gratuito
-    suficiente para empezar). Si prefieres otro servicio, cambia sólo
-    esta función: el resto del flujo no se entera.
-
-    Requisito: verificar tu dominio en Resend para que el correo
-    no caiga en spam.
-    """
     if not RESEND_API_KEY:
         print("AVISO: RESEND_API_KEY vacío. Enlaces generados:", enlaces)
         return
@@ -270,9 +186,6 @@ def enviar_correo(destinatario, titulo, enlaces):
 
 # ===========================================================================
 # 4. LA FUNCIÓN SERVERLESS
-# ---------------------------------------------------------------------------
-# Vercel busca una clase llamada exactamente "handler".
-# El nombre del archivo define la URL: api/webhook.py → /api/webhook
 # ===========================================================================
 
 class handler(BaseHTTPRequestHandler):
@@ -286,30 +199,51 @@ class handler(BaseHTTPRequestHandler):
         self.wfile.write(cuerpo)
 
     def do_GET(self):
-        """Para abrir la URL en el navegador y confirmar que está viva."""
         self._responder(200, "Webhook de Cosmos y Esencia activo.")
 
     def do_POST(self):
         try:
-            # --- Leemos el aviso que mandó Mercado Pago ---
+            # --- Paso 1: Extraer datos del JSON (Webhook) y de la URL (IPN) ---
             largo = int(self.headers.get("Content-Length", 0))
             crudo = self.rfile.read(largo) if largo else b"{}"
-            aviso = json.loads(crudo or b"{}")
+            try:
+                aviso = json.loads(crudo or b"{}")
+            except json.JSONDecodeError:
+                aviso = {}
 
-            # Mercado Pago manda varios tipos de aviso. Sólo nos interesan
-            # los de tipo "payment"; los demás los ignoramos con un 200.
-            tipo = aviso.get("type") or aviso.get("topic")
+            url_parseada = urlparse(self.path)
+            parametros = parse_qs(url_parseada.query)
+
+            # Buscamos el tipo de evento
+            tipo = (
+                aviso.get("type") or 
+                aviso.get("topic") or 
+                (parametros.get("topic", [None])[0]) or 
+                (parametros.get("type", [None])[0])
+            )
+
             if tipo != "payment":
                 return self._responder(200, "Aviso ignorado (no es un pago).")
 
-            payment_id = str(aviso.get("data", {}).get("id", ""))
+            # Buscamos el ID del pago
+            payment_id = (
+                aviso.get("data", {}).get("id") or 
+                aviso.get("id") or 
+                (parametros.get("id", [""])[0])
+            )
+            payment_id = str(payment_id).strip()
+
             if not payment_id:
                 return self._responder(200, "Aviso sin id de pago.")
 
             # --- Paso 2: ¿de verdad viene de Mercado Pago? ---
-            if not firma_valida(self.headers, payment_id):
-                print("Firma inválida para el pago", payment_id)
-                return self._responder(401, "Firma inválida.")
+            # Si trae el encabezado de firma, lo validamos.
+            # Si no lo trae (como las notificaciones IPN clásicas),
+            # confiamos en el Paso 3 que consultará directo a la API de MP.
+            if self.headers.get("x-signature"):
+                if not firma_valida(self.headers, payment_id):
+                    print("Firma inválida para el pago", payment_id)
+                    return self._responder(401, "Firma inválida.")
 
             # --- Paso 3: consultamos el estado real del pago ---
             pago = consultar_pago(payment_id)
@@ -353,11 +287,8 @@ class handler(BaseHTTPRequestHandler):
             return self._responder(200, "Entrega completada.")
 
         except Exception as error:
-            # Registramos el error pero contestamos 200: así Mercado Pago
-            # no reintenta en bucle. Revisa el detalle en Vercel → Logs.
             print("ERROR en el webhook:", repr(error))
             return self._responder(200, "Error registrado.")
 
     def log_message(self, formato, *args):
-        """Silencia el log por defecto; usamos print() donde importa."""
         return
