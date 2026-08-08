@@ -6,34 +6,59 @@
 <title>Cosmos y Esencia — Ebooks de energía, astrología y conexión interior</title>
 <meta name="description" content="Dos cuadernos digitales para observarte con más claridad: Renacer Energético (21 días de práctica) y Matriz del Destino (los 22 arquetipos). Descarga inmediata en PDF.">
 
-<!-- Open Graph: cómo se ve el enlace cuando lo compartes en WhatsApp, Facebook o Instagram -->
+<!-- El icono que se ve en la pestaña del navegador -->
+<link rel="icon" type="image/png" href="assets/favicon.png">
+<link rel="apple-touch-icon" href="assets/favicon.png">
+
+<!-- Cómo se ve el enlace cuando lo compartes en WhatsApp, Facebook o Instagram -->
 <meta property="og:type" content="website">
 <meta property="og:title" content="Cosmos y Esencia — Ebooks de energía y conexión interior">
 <meta property="og:description" content="Dos cuadernos digitales para volver a ti con una mirada más consciente.">
-<meta property="og:image" content="assets/portada.jpg">
-<meta name="theme-color" content="#0D1730">
+<meta property="og:image" content="assets/og-cosmos.jpg">
+<meta name="theme-color" content="#131A29">
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300&family=Jost:wght@300;400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Jost:wght@200;300;400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="styles.css">
 </head>
 
 <body>
 <a class="skip-link" href="#libros">Ir a los libros</a>
 
-<!-- ══════════ SÍMBOLO REUTILIZABLE: el eclipse (elemento visual de la marca) ══════════ -->
+<!-- ════════════════════════════════════════════════════════════════
+     EL CIELO
+     Estas tres capas viven detrás de TODA la página (position:fixed).
+     No se tocan ni se leen: son decoración, por eso van con aria-hidden.
+
+       1. .cielo__nebulosa → manchas de color moradas que se mueven lento
+       2. <canvas>         → estrellas que titilan + estrellas fugaces (cielo.js)
+       3. .cielo__vineta   → oscurece los bordes para que el texto se lea
+     ════════════════════════════════════════════════════════════════ -->
+<div class="cielo" aria-hidden="true">
+  <div class="cielo__nebulosa"></div>
+  <canvas id="cielo-estrellas"></canvas>
+  <div class="cielo__vineta"></div>
+</div>
+
+<!-- Símbolo del eclipse dibujado en SVG. Se usa como separador entre secciones. -->
 <svg width="0" height="0" aria-hidden="true" focusable="false" style="position:absolute">
   <symbol id="eclipse" viewBox="0 0 48 48">
-    <circle cx="24" cy="24" r="15" fill="none" stroke="currentColor" stroke-width="1"/>
+    <circle cx="24" cy="24" r="15" fill="none" stroke="currentColor" stroke-width="1" opacity=".55"/>
     <path d="M24 9a15 15 0 0 1 0 30" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/>
+  </symbol>
+  <symbol id="destello" viewBox="0 0 24 24">
+    <path d="M12 1c.6 6.2 4.8 10.4 11 11-6.2.6-10.4 4.8-11 11-.6-6.2-4.8-10.4-11-11 6.2-.6 10.4-4.8 11-11z" fill="currentColor"/>
   </symbol>
 </svg>
 
 <!-- ══════════════════════════ ENCABEZADO ══════════════════════════ -->
 <header class="topbar" id="topbar">
   <div class="topbar__inner">
-    <a class="wordmark" href="#top">Cosmos&nbsp;y&nbsp;Esencia</a>
+    <a class="marca" href="#top" aria-label="Cosmos y Esencia, ir al inicio">
+      <img class="marca__icono" src="assets/eclipse.png" alt="" width="420" height="404">
+      <span class="marca__texto">Cosmos&nbsp;y&nbsp;Esencia</span>
+    </a>
     <nav class="topnav" aria-label="Secciones">
       <a href="#libros">Los libros</a>
       <a href="#proceso">Cómo llega</a>
@@ -47,11 +72,15 @@
 
   <!-- ══════════════════════════ PORTADA ══════════════════════════ -->
   <section class="hero">
-    <div class="hero__image">
-      <img src="assets/portada.png"
-           alt="Observatorio bajo un cielo nocturno con un eclipse. Cosmos y Esencia: energía, astrología y conexión interior."
-           width="1920" height="767" fetchpriority="high">
-    </div>
+    <div class="hero__aura" aria-hidden="true"></div>
+
+    <picture>
+      <source media="(max-width: 700px)" srcset="assets/logo-completo.png">
+      <img class="hero__banner"
+           src="assets/banner-marca.png"
+           alt="Cosmos y Esencia — energía, astrología y conexión interior"
+           width="1500" height="397" fetchpriority="high">
+    </picture>
 
     <div class="hero__copy reveal">
       <p class="eyebrow">Dos cuadernos digitales</p>
@@ -72,8 +101,10 @@
 
     <!-- ── LIBRO 1 ────────────────────────────────────────────────── -->
     <article class="book reveal">
+
       <div class="book__cover">
-        <img src="assets/cover-renacer.jpg" alt="Portada del ebook Renacer Energético: 21 días para liberar bloqueos y recuperar tu paz" width="760" height="1075" loading="lazy">
+        <!-- Imagen de la portada completa escalable -->
+        <img src="assets/portada_renacer.PNG" alt="Portada del ebook Renacer Energético" width="760" height="1075" loading="lazy">
       </div>
 
       <div class="book__body">
@@ -95,24 +126,19 @@
         </ul>
 
         <div class="buyline">
-          <!-- ✏️ PRECIO: cambia el número aquí y también en tu link de Mercado Pago -->
           <p class="price">$149 <span>MXN</span></p>
-          <!--
-            ✏️ BOTÓN DE COMPRA
-            Reemplaza el "#" por tu Link de Pago de Mercado Pago.
-            Se crea en: mercadopago.com.mx → Tu negocio → Link de pago.
-            Ejemplo: https://mpago.la/16rj7TY
-          -->
           <a class="btn btn--solid" href="https://mpago.la/16rj7TY" data-producto="renacer">Comenzar los 21 días</a>
         </div>
         <p class="microcopy">Recibes el enlace por correo en cuanto se aprueba tu pago.</p>
       </div>
     </article>
 
-<!-- ── LIBRO 2 ────────────────────────────────────────────────── -->
+    <!-- ── LIBRO 2 ────────────────────────────────────────────────── -->
     <article class="book book--flip reveal">
+
       <div class="book__cover">
-        <img src="assets/cover-matriz.jpg" alt="Portada del ebook Matriz del Destino: el mapa oculto de tus números" width="760" height="1085" loading="lazy">
+        <!-- Imagen de la portada completa escalable -->
+        <img src="assets/portada_matriz.PNG" alt="Portada del ebook Matriz del Destino" width="760" height="1075" loading="lazy">
       </div>
 
       <div class="book__body">
@@ -134,9 +160,7 @@
         </ul>
 
         <div class="buyline">
-          <!-- ✏️ PRECIO -->
           <p class="price">$149 <span>MXN</span></p>
-          <!-- ✏️ BOTÓN DE COMPRA: pega aquí tu segundo Link de Pago de Mercado Pago -->
           <a class="btn btn--solid" href="https://mpago.la/2VZaqBf" data-producto="matriz">Descubrir mi matriz</a>
         </div>
         <p class="microcopy">Recibes el enlace por correo en cuanto se aprueba tu pago.</p>
@@ -146,10 +170,9 @@
   </section>
 
   <!-- ══════════════════════════ CÓMO LLEGA ══════════════════════════ -->
-  <!-- ══════════════════════════ CÓMO LLEGA ══════════════════════════ -->
   <section id="proceso" class="process">
     <div class="wrap reveal">
-      <p class="eyebrow eyebrow--light">Cómo llega a tus manos</p>
+      <p class="eyebrow">Cómo llega a tus manos</p>
       <h2 class="section-title">Tres pasos y a leer</h2>
 
       <ol class="steps">
@@ -181,7 +204,7 @@
   <section id="preguntas" class="faq">
     <div class="wrap reveal">
       <p class="eyebrow">Antes de comprar</p>
-      <h2 class="section-title">Preguntas honestas</h2>
+      <h2 class="section-title">Preguntas frecuentes</h2>
 
       <details>
         <summary>¿Necesito saber de tarot o astrología?</summary>
@@ -212,6 +235,7 @@
 
   <!-- ══════════════════════════ CIERRE ══════════════════════════ -->
   <section class="closing">
+    <div class="closing__aura" aria-hidden="true"></div>
     <div class="wrap reveal">
       <svg class="glyph glyph--lg" aria-hidden="true"><use href="#eclipse"/></svg>
       <blockquote>Renacer es regresar a ti con una mirada más consciente.</blockquote>
@@ -224,20 +248,20 @@
 <!-- ══════════════════════════ PIE ══════════════════════════ -->
 <footer class="foot">
   <div class="foot__inner">
-    <p class="wordmark wordmark--foot">Cosmos y Esencia</p>
+    <img class="foot__logo" src="assets/logo-completo.png" alt="Cosmos y Esencia" width="760" height="494" loading="lazy">
     <p class="foot__legal">
       Material educativo y de bienestar personal. No diagnostica, no trata enfermedades
       y no sustituye atención médica o psicológica. Uso personal: no se permite reventa
       ni distribución.
     </p>
     <p class="foot__legal">
-      <!-- ✏️ Pon aquí tu correo real de contacto -->
       Contacto: <a href="mailto:hola@cosmosyesencia.com">hola@cosmosyesencia.com</a>
       &nbsp;·&nbsp; © <span id="year">2026</span> Cosmos y Esencia
     </p>
   </div>
 </footer>
 
+<script src="cielo.js" defer></script>
 <script src="script.js" defer></script>
 </body>
 </html>
