@@ -236,14 +236,6 @@ class handler(BaseHTTPRequestHandler):
             if not payment_id:
                 return self._responder(200, "Aviso sin id de pago.")
 
-            # --- Paso 2: ¿de verdad viene de Mercado Pago? ---
-            # Si trae el encabezado de firma, lo validamos.
-            # Si no lo trae (como las notificaciones IPN clásicas),
-            # confiamos en el Paso 3 que consultará directo a la API de MP.
-            if self.headers.get("x-signature"):
-                if not firma_valida(self.headers, payment_id):
-                    print("Firma inválida para el pago", payment_id)
-                    return self._responder(401, "Firma inválida.")
 
             # --- Paso 3: consultamos el estado real del pago ---
             pago = consultar_pago(payment_id)
