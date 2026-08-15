@@ -10,7 +10,7 @@ MP_ACCESS_TOKEN = os.environ.get("MP_ACCESS_TOKEN", "")
 CATALOGO = {
     "renacer": {
         "title": "Renacer Energético — 21 días",
-        "price": 10.0
+        "price": 149.0
     },
     "matriz": {
         "title": "Matriz del Destino",
