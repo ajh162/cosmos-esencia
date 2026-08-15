@@ -49,7 +49,7 @@ RESEND_API_KEY       = os.environ.get("RESEND_API_KEY", "")
 CORREO_REMITENTE     = os.environ.get("CORREO_REMITENTE", "hola@cosmosyesencia.com")
 
 BUCKET = "ebooks"
-DURACION_ENLACE = 60 * 60 * 48
+DURACION_ENLACE = 60 * 60 * 24  # Modificado a 24 horas
 
 
 # ===========================================================================
@@ -160,7 +160,7 @@ def enviar_correo(destinatario, titulo, enlaces):
       <p>Gracias por tu compra de <strong>{titulo}</strong>.</p>
       {botones}
       <p style="font-size:13px;color:#6E7288">
-        El enlace es personal y caduca en 48 horas. Descarga el archivo y
+        El enlace es personal y caduca en 24 horas. Descarga el archivo y
         guárdalo en tu dispositivo. Si se venció antes de que lo abrieras,
         responde a este correo y te enviamos uno nuevo.
       </p>
