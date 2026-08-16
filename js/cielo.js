@@ -75,6 +75,16 @@
 
   var lienzo = document.getElementById('cielo-estrellas');
   if (!lienzo) return;
+
+  // En teléfonos bajamos la carga de dibujo: menos estrellas, menos
+  // constelaciones y menos polvo. La densidad ya escala por área, pero
+  // una GPU de celular agradece el descuento extra — y la batería más.
+  if (window.innerWidth < 780) {
+    AJUSTES.densidad = 1.1;
+    AJUSTES.maximoEstrellas = 200;
+    AJUSTES.polvoCantidad = 12;
+    AJUSTES.constelacionDistancia = 100;
+  }
   var ctx = lienzo.getContext('2d');
   if (!ctx) return;
 
@@ -460,7 +470,24 @@
   /* -- Eventos --------------------------------------------- */
 
   var temporizador;
+  var anchoPrevio = window.innerWidth;
+
   window.addEventListener('resize', function () {
+    // EN CELULARES: al hacer scroll, la barra del navegador se oculta y
+    // reaparece. Eso cambia la ALTURA de la ventana y dispara un resize
+    // constante. Si volviéramos a sembrar el cielo cada vez, se vería un
+    // parpadeo a media lectura. Por eso solo reaccionamos cuando cambia
+    // el ANCHO, que es lo que de verdad significa "giró el teléfono" o
+    // "cambió el tamaño de la ventana".
+    var anchoNuevo = window.innerWidth;
+    if (Math.abs(anchoNuevo - anchoPrevio) < 2) {
+      // Solo cambió la altura: ajustamos el lienzo sin resembrar
+      alto = lienzo.clientHeight;
+      lienzo.height = Math.round(alto * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      return;
+    }
+    anchoPrevio = anchoNuevo;
     clearTimeout(temporizador);
     temporizador = setTimeout(iniciar, 220);
   });
