@@ -51,7 +51,7 @@ SITIO_URL = os.environ.get("SITIO_URL", "https://www.cosmosyesencia.com").rstrip
 CATALOGO = {
     "renacer": {
         "title": "Renacer Energético — 21 días",
-        "price": 5.0,
+        "price": 149.0,
     },
     "matriz": {
         "title": "Matriz del Destino",
