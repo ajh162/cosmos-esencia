@@ -10,11 +10,22 @@
 <link rel="icon" type="image/png" href="assets/favicon.png">
 <link rel="apple-touch-icon" href="assets/favicon.png">
 
-<!-- Cómo se ve el enlace cuando lo compartes en WhatsApp, Facebook o Instagram -->
+<!-- ════════════════════════════════════════════════════════════════
+     CÓMO SE VE EL ENLACE AL COMPARTIRLO
+     WhatsApp, Facebook e Instagram NO resuelven rutas relativas:
+     og:image y og:url tienen que ser direcciones completas, con
+     https:// y el dominio. Si se dejan relativas, el enlace se
+     comparte sin imagen.
+     ════════════════════════════════════════════════════════════════ -->
 <meta property="og:type" content="website">
+<meta property="og:url" content="https://www.cosmosyesencia.com/">
 <meta property="og:title" content="Cosmos y Esencia — Ebooks de energía y conexión interior">
 <meta property="og:description" content="Dos cuadernos digitales para volver a ti con una mirada más consciente.">
-<meta property="og:image" content="assets/og-cosmos.jpg">
+<meta property="og:image" content="https://www.cosmosyesencia.com/assets/og-cosmos.jpg">
+<meta property="og:image:alt" content="Cosmos y Esencia — energía, astrología y conexión interior">
+<meta property="og:site_name" content="Cosmos y Esencia">
+<meta property="og:locale" content="es_MX">
+<meta name="twitter:card" content="summary_large_image">
 <meta name="theme-color" content="#131A29">
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -129,7 +140,10 @@
           <p class="price">$149 <span>MXN</span></p>
           <a class="btn btn--solid" href="/api/checkout?producto=renacer" data-producto="renacer">Comenzar los 21 días</a>
         </div>
-        <p class="microcopy">Recibes el enlace por correo en cuanto se aprueba tu pago.</p>
+        <!-- Ahora la descarga aparece en pantalla al volver del pago (/api/gracias)
+             y además llega por correo. Mencionar las dos vías evita mensajes
+             de "no me llegó nada" cuando el correo tarda o cae en spam. -->
+        <p class="microcopy">Recibes tu enlace en pantalla y también por correo, en cuanto se aprueba tu pago.</p>
       </div>
     </article>
 
@@ -163,9 +177,33 @@
           <p class="price">$149 <span>MXN</span></p>
           <a class="btn btn--solid" href="/api/checkout?producto=matriz" data-producto="matriz">Descubrir mi matriz</a>
         </div>
-        <p class="microcopy">Recibes el enlace por correo en cuanto se aprueba tu pago.</p>
+        <p class="microcopy">Recibes tu enlace en pantalla y también por correo, en cuanto se aprueba tu pago.</p>
       </div>
     </article>
+
+    <!-- ════════════════════════════════════════════════════════════
+         PENDIENTE: EL PAQUETE
+         checkout.py y webhook.py ya tienen el producto "paquete"
+         (los dos libros juntos, $249). Falta decidir con la clienta
+         si se vende. Cuando se apruebe, basta con agregar un bloque
+         como este:
+
+         <article class="book reveal">
+           <div class="book__body">
+             <p class="eyebrow">Los dos cuadernos</p>
+             <h2>Renacer Energético + Matriz del Destino</h2>
+             <div class="buyline">
+               <p class="price">$249 <span>MXN</span></p>
+               <a class="btn btn--solid" href="/api/checkout?producto=paquete"
+                  data-producto="paquete">Llevarme los dos</a>
+             </div>
+           </div>
+         </article>
+
+         Si se decide NO venderlo, hay que quitar "paquete" del
+         CATALOGO en los dos archivos de /api para no dejar código
+         que nadie usa.
+         ════════════════════════════════════════════════════════════ -->
 
   </section>
 
@@ -189,7 +227,7 @@
         <li>
           <span class="steps__n">03</span>
           <h3>Recibes tu enlace</h3>
-          <p>En cuanto el pago se aprueba, te llega por correo un enlace privado para descargar tu PDF.</p>
+          <p>En cuanto el pago se aprueba, vuelves al sitio y tu enlace privado aparece en pantalla. También te lo enviamos por correo, por si prefieres descargarlo después.</p>
         </li>
       </ol>
 
@@ -227,6 +265,11 @@
       </details>
 
       <details>
+        <summary>¿Y si no me llega el correo?</summary>
+        <p>Al volver del pago, tu enlace aparece en pantalla: descárgalo desde ahí. Si además quieres el correo, revisa la carpeta de spam o promociones. Si aun así no aparece, escríbenos y te lo reenviamos.</p>
+      </details>
+
+      <details>
         <summary>¿Hay devoluciones?</summary>
         <p>Al ser archivos digitales que se descargan al instante, no manejamos reembolso una vez entregado el enlace. Si tuviste un problema con la descarga, escríbenos y lo resolvemos.</p>
       </details>
@@ -254,8 +297,12 @@
       y no sustituye atención médica o psicológica. Uso personal: no se permite reventa
       ni distribución.
     </p>
+    <!-- OJO: el correo de contacto debe ser un buzón que SÍ reciba.
+         hola@cosmosyesencia.com solo sirve para ENVIAR (Resend), porque
+         el dominio no tiene registro MX en la raíz. Si algún día se
+         configura un buzón real con el dominio, se puede cambiar aquí. -->
     <p class="foot__legal">
-      Contacto: <a href="mailto:hola@cosmosyesencia.com">cosmosyesencia@gmail.com</a>
+      Contacto: <a href="mailto:cosmosyesencia@gmail.com">cosmosyesencia@gmail.com</a>
       &nbsp;·&nbsp; © <span id="year">2026</span> Cosmos y Esencia
     </p>
   </div>
