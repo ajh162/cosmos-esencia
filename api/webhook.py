@@ -21,6 +21,17 @@
       en los logs de Vercel (Dashboard → tu proyecto → Logs).
 
  ── CAMBIOS DE ESTA VERSIÓN ────────────────────────────────────────────────
+   • El correo ahora lleva reply_to apuntando a CORREO_CONTACTO.
+     Sale desde el dominio verificado en Resend (que es lo que garantiza
+     la entregabilidad), pero cuando el comprador presiona "Responder",
+     su mensaje se va al Gmail del negocio.
+
+     POR QUÉ IMPORTA: el dominio tiene un registro MX solo en el host
+     "send", que es el que Resend usa para ENVIAR. El dominio raíz no
+     tiene MX, así que hola@cosmosyesencia.com no puede RECIBIR nada.
+     Sin reply_to, las respuestas de los clientes rebotan y se pierden.
+
+ ── CAMBIOS DE LA VERSIÓN ANTERIOR ─────────────────────────────────────────
    • El paso 2 AHORA SÍ SE EJECUTA. La función firma_valida() ya existía
      y estaba bien escrita, pero nunca se llamaba desde do_POST().
    • La venta se registra ANTES de intentar el correo. Antes, si Resend
@@ -32,22 +43,27 @@
 ============================================================================
 
  TABLA QUE NECESITA ESTE ARCHIVO
- Pega esto en Supabase → SQL Editor → Run:
+ (Es la que ya está creada en Supabase. Se deja aquí por si algún día
+  hay que recrearla desde cero.)
 
    create table if not exists entregas (
-     payment_id  text primary key,
-     producto    text,
+     id          bigserial primary key,
+     payment_id  text unique not null,
+     producto    text not null,
      correo      text,
      monto       numeric,
-     entregado   boolean default false,
      creado_en   timestamptz default now()
    );
 
- Si ya la habías creado sin las dos últimas columnas, corre esto:
-
    alter table entregas add column if not exists entregado boolean default false;
-   alter table entregas add column if not exists creado_en timestamptz default now();
+   alter table entregas enable row level security;
 
+ El upsert de más abajo usa on_conflict="payment_id", que funciona igual
+ con un UNIQUE que con una llave primaria.
+
+ RLS activado y SIN políticas es lo correcto: nadie puede leer la tabla
+ desde el navegador, y este archivo sí puede escribir porque usa la llave
+ service_role, que se salta el RLS por diseño.
 ============================================================================
 """
 
@@ -71,7 +87,13 @@ MP_WEBHOOK_SECRET    = os.environ.get("MP_WEBHOOK_SECRET", "")
 SUPABASE_URL         = os.environ.get("SUPABASE_URL", "")
 SUPABASE_SERVICE_KEY = os.environ.get("SUPABASE_SERVICE_KEY", "")
 RESEND_API_KEY       = os.environ.get("RESEND_API_KEY", "")
+
+# Desde dónde SALE el correo. Tiene que ser el dominio verificado en Resend.
 CORREO_REMITENTE     = os.environ.get("CORREO_REMITENTE", "hola@cosmosyesencia.com")
+
+# A dónde LLEGAN las respuestas de los compradores. Aquí sí puede ir un
+# Gmail: no se usa para enviar, solo como destino del botón "Responder".
+CORREO_CONTACTO      = os.environ.get("CORREO_CONTACTO", "").strip()
 
 BUCKET = "ebooks"
 DURACION_ENLACE = 60 * 60 * 24  # 24 horas
@@ -223,18 +245,30 @@ def enviar_correo(destinatario, titulo, enlaces):
     </div>
     """
 
+    cuerpo = {
+        "from": f"Cosmos y Esencia <{CORREO_REMITENTE}>",
+        "to": [destinatario],
+        "subject": f"Tu descarga: {titulo}",
+        "html": html,
+    }
+
+    # A dónde va el mensaje cuando el comprador presiona "Responder".
+    # Solo se agrega si la variable existe: un reply_to vacío hace que
+    # Resend rechace el envío.
+    if CORREO_CONTACTO:
+        cuerpo["reply_to"] = CORREO_CONTACTO
+    else:
+        print("AVISO: CORREO_CONTACTO vacío. Las respuestas de los compradores",
+              "irán al remitente, que no tiene MX en el dominio raíz y por lo",
+              "tanto no recibe correo.")
+
     respuesta = requests.post(
         "https://api.resend.com/emails",
         headers={
             "Authorization": f"Bearer {RESEND_API_KEY}",
             "Content-Type": "application/json",
         },
-        json={
-            "from": f"Cosmos y Esencia <{CORREO_REMITENTE}>",
-            "to": [destinatario],
-            "subject": f"Tu descarga: {titulo}",
-            "html": html,
-        },
+        json=cuerpo,
         timeout=10,
     )
 
