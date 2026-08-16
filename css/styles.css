@@ -255,6 +255,15 @@ p{ margin:0 0 1.1rem; }
 
 .btn--sm{ padding:.7em 1.5em; font-size:.68rem; }
 
+/* En pantallas táctiles, todo lo que se toca necesita al menos ~44px
+   de alto. Con letras tan chicas, el botón quedaba en 32px y se
+   fallaba el toque seguido. */
+@media (hover:none){
+  .btn{ padding:1.1em 2.2em; }
+  .btn--sm{ padding:.95em 1.6em; font-size:.72rem; }
+  .topnav a{ padding:.5rem 0; }
+}
+
 :focus-visible{ outline:2px solid var(--oro-claro); outline-offset:3px; border-radius:2px; }
 
 .skip-link{
@@ -770,7 +779,74 @@ p{ margin:0 0 1.1rem; }
 }
 
 @media (max-width:560px){
-  .topbar .btn--ghost{ display:none; }
+  /* ANTES aquí se ocultaba el botón del encabezado. Como la
+     navegación también se esconde en móvil, el encabezado quedaba
+     con puro logo y sin ninguna forma de llegar a los libros.
+     Ahora se queda, solo que más compacto. */
+  .topbar__inner{ gap:.75rem; }
+  .marca__texto{ font-size:.74rem; letter-spacing:.12em; }
+  .marca__icono{ width:24px; }
+  .topbar .btn--ghost{ padding:.8em 1.1em; font-size:.62rem; letter-spacing:.12em; }
+
+  .wrap, .books{ width:min(100% - 1.75rem, var(--wrap)); }
+  .book{ padding:1.4rem .25rem; }
+  .price{ font-size:2rem; }
+  .buyline{ gap:1rem; }
+  .buyline .btn{ width:100%; text-align:center; }
+
+  .faq summary{ font-size:1.06rem; padding-right:2.2rem; }
+  .faq details p{ padding-right:0; }
+
+  .closing blockquote{ font-size:1.5rem; max-width:16ch; }
+  .divider{ padding-block:2.5rem; }
+}
+
+/* ============================================================
+   AJUSTES ESPECÍFICOS DE MÓVIL
+   ============================================================ */
+@media (max-width:780px){
+  /* El aura del cierre medía 160vw. En un teléfono eso es casi el
+     doble del ancho de pantalla y en iOS podía provocar barrido
+     horizontal pese al overflow-x del body. */
+  .closing__aura{ width:min(125vw, 700px); }
+  .hero__aura{ width:120%; }
+
+  /* Los desenfoques grandes son lo más caro de dibujar para la GPU
+     de un teléfono. Se bajan y se apagan las dos capas extra de
+     nebulosa: en pantalla chica no se distinguen y sí se sienten
+     en la fluidez y en la batería. */
+  .cielo__nebulosa{ filter:blur(34px); }
+  .cielo__nebulosa::before,
+  .cielo__nebulosa::after{ display:none; }
+
+  /* Menos aire vertical: en móvil el scroll se hace largo */
+  :root{ --aire:clamp(3rem, 9vw, 5rem); }
+
+  .steps li{ padding-left:2.9rem; }
+  .process__note{ margin-top:2.5rem; }
+}
+
+/* Respetar la muesca y la barra de gestos del iPhone */
+@supports (padding:max(0px)){
+  .topbar__inner{
+    padding-left:max(0px, env(safe-area-inset-left));
+    padding-right:max(0px, env(safe-area-inset-right));
+  }
+  .foot{ padding-bottom:max(3rem, calc(2rem + env(safe-area-inset-bottom))); }
+}
+
+/* Evitar cualquier barrido horizontal accidental. overflow-x:clip
+   funciona donde overflow-x:hidden falla (iOS con position:fixed). */
+html{ overflow-x:clip; }
+body{ overflow-x:clip; }
+
+/* En pantallas táctiles no hay cursor: quitamos los estados que
+   dependen de él para que no se queden "pegados" tras un toque. */
+@media (hover:none){
+  .btn:hover{ transform:none; }
+  .book__cover:hover img{ box-shadow:0 26px 60px -22px rgba(0,0,0,.85); }
+  .topnav a:hover::after{ left:50%; right:50%; }
+  .faq summary:hover{ padding-left:0; }
 }
 
 /* ============================================================
