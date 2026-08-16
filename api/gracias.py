@@ -14,9 +14,28 @@
      • El correo cae en spam.
      • El comprador escribió mal su correo.
 
-   En los tres casos el cliente pagó y ve una página en blanco. Con esta
-   página, al volver de Mercado Pago ve su botón de descarga de inmediato.
-   El correo pasa a ser el respaldo, no el único camino.
+   Con esta página, al volver de Mercado Pago ve su botón de descarga de
+   inmediato. El correo pasa a ser el respaldo, no el único camino.
+
+ ── CAMBIOS DE ESTA VERSIÓN (lo visual) ────────────────────────────────────
+
+   ANTES esta página traía su propio CSS copiado a mano: fondo plano, un
+   eclipse dibujado en SVG y nada de movimiento. Se parecía al sitio,
+   pero no era el sitio.
+
+   AHORA carga los MISMOS archivos que index.html:
+
+       /css/styles.css   → la hoja de estilos completa de la marca
+       /js/cielo.js      → el cielo animado (estrellas, nebulosas,
+                            constelaciones, fugaces, polvo estelar)
+
+   y monta las mismas tres capas de fondo. Resultado: el comprador no
+   siente que salió a otra página.
+
+   VENTAJA IMPORTANTE: el día que cambies un color o una animación en
+   styles.css, esta página cambia sola. No hay dos copias que mantener.
+
+   El círculo del eclipse se cambió por assets/eclipse.png, el logo real.
 
  CÓMO LLEGA AQUÍ EL COMPRADOR:
 
@@ -40,7 +59,7 @@ MP_ACCESS_TOKEN      = os.environ.get("MP_ACCESS_TOKEN", "")
 SUPABASE_URL         = os.environ.get("SUPABASE_URL", "")
 SUPABASE_SERVICE_KEY = os.environ.get("SUPABASE_SERVICE_KEY", "")
 SITIO_URL            = os.environ.get("SITIO_URL", "https://www.cosmosyesencia.com").rstrip("/")
-CORREO_CONTACTO      = os.environ.get("CORREO_CONTACTO", "hola@cosmosyesencia.com")
+CORREO_CONTACTO      = os.environ.get("CORREO_CONTACTO", "cosmosyesencia@gmail.com")
 
 BUCKET = "ebooks"
 DURACION_ENLACE = 60 * 60 * 24  # 24 horas
@@ -67,8 +86,13 @@ CATALOGO = {
 # ===========================================================================
 # LA PÁGINA
 # ---------------------------------------------------------------------------
-# Usa la misma paleta, las mismas tipografías y el mismo lenguaje visual
-# que index.html, para que el comprador sienta que nunca salió del sitio.
+# Reutiliza styles.css y cielo.js del sitio. Solo lleva un bloque pequeño
+# de CSS propio para centrar el contenido, porque esta pantalla no tiene
+# las secciones largas de index.html.
+#
+# NOTA PARA CUANDO LO EDITES: este texto es un f-string de Python, así que
+# las llaves del CSS van DOBLES ({{ y }}). Si escribes una sola, Python
+# creerá que es una variable y truena al desplegar.
 # ===========================================================================
 
 def pagina(titular, texto, botones_html="", nota=""):
@@ -81,97 +105,99 @@ def pagina(titular, texto, botones_html="", nota=""):
 <meta name="robots" content="noindex">
 <link rel="icon" type="image/png" href="{SITIO_URL}/assets/favicon.png">
 <meta name="theme-color" content="#131A29">
+
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400&family=Jost:wght@200;300;400&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Jost:wght@200;300;400;500&display=swap" rel="stylesheet">
+
+<!-- La MISMA hoja de estilos del sitio. Si cambias la marca, esta
+     página cambia sola. -->
+<link rel="stylesheet" href="{SITIO_URL}/css/styles.css">
+
 <style>
-  :root {{
-    --noche: #131A29;
-    --superficie: #232F4C;
-    --lavanda: #B9A8D6;
-    --oro: #E6B96C;
-    --marfil: #F7F3EE;
-    --display: "Cormorant Garamond", Georgia, serif;
-    --sans: "Jost", "Helvetica Neue", Arial, sans-serif;
+  /* Lo único propio de esta pantalla: centrar todo verticalmente
+     y darle al logo su entrada y su latido. */
+  .gracias{{
+    min-height:100vh;
+    min-height:100dvh;
+    display:grid;
+    place-items:center;
+    padding:10vh 6vw;
+    text-align:center;
   }}
-  * {{ box-sizing: border-box; }}
-  body {{
-    margin: 0;
-    min-height: 100vh;
-    display: grid;
-    place-items: center;
-    padding: 8vh 6vw;
-    background: radial-gradient(120% 90% at 50% 0%, #232F4C 0%, #131A29 62%);
-    color: rgba(247,243,238,.86);
-    font-family: var(--sans);
-    font-weight: 300;
-    line-height: 1.7;
-    text-align: center;
+  .gracias__caja{{ width:min(100%, 34rem); }}
+
+  .gracias__logo{{
+    width:88px; margin:0 auto 2rem;
+    filter:drop-shadow(0 0 26px rgba(230,185,108,.45));
+    animation:aparecer-logo 1.2s var(--curva) both,
+              latir-logo 6s ease-in-out 1.2s infinite;
   }}
-  .caja {{ max-width: 34rem; }}
-  .eclipse {{ color: var(--oro); opacity: .9; margin-bottom: 1.5rem; }}
-  h1 {{
-    font-family: var(--display);
-    font-weight: 300;
-    font-size: clamp(2rem, 6vw, 3rem);
-    line-height: 1.15;
-    color: var(--marfil);
-    margin: 0 0 1rem;
+  @keyframes aparecer-logo{{
+    from{{ opacity:0; transform:translateY(12px) scale(.86); }}
+    to  {{ opacity:1; transform:none; }}
   }}
-  p {{ margin: 0 0 1.25rem; }}
-  .btn {{
-    display: inline-block;
-    margin: .5rem .35rem;
-    padding: 1rem 2.2rem;
-    border-radius: 999px;
-    background: var(--oro);
-    color: var(--noche);
-    text-decoration: none;
-    font-size: .82rem;
-    letter-spacing: .16em;
-    text-transform: uppercase;
-    transition: transform .2s ease, box-shadow .2s ease;
+
+  .gracias h1{{ margin-bottom:1.2rem; }}
+  .gracias__texto{{ max-width:34ch; margin-inline:auto; }}
+  .gracias__texto em{{ color:var(--oro); font-style:italic; }}
+  .gracias .btn{{ margin:.5rem .35rem; }}
+  .gracias__nota{{
+    margin-top:2.5rem;
+    font-size:.82rem;
+    color:var(--texto-suave);
+    max-width:42ch; margin-inline:auto;
   }}
-  .btn:hover, .btn:focus-visible {{
-    transform: translateY(-2px);
-    box-shadow: 0 10px 30px rgba(230,185,108,.28);
-  }}
-  .btn--ghost {{
-    background: transparent;
-    color: var(--lavanda);
-    border: 1px solid rgba(185,168,214,.34);
-  }}
-  .nota {{
-    margin-top: 2rem;
-    font-size: .82rem;
-    color: rgba(185,168,214,.8);
-    line-height: 1.6;
-  }}
-  a {{ color: var(--lavanda); }}
-  :focus-visible {{ outline: 2px solid var(--oro); outline-offset: 3px; }}
-  @media (prefers-reduced-motion: reduce) {{
-    .btn {{ transition: none; }}
-    .btn:hover {{ transform: none; }}
+  .gracias__nota a{{ color:var(--oro-claro); }}
+
+  /* El aura dorada detrás del contenido, como en el cierre del sitio.
+     Sin overflow:hidden, para que no deje un canto recto. */
+  .gracias__aura{{
+    position:fixed; left:50%; top:50%;
+    width:min(150vw, 1200px); aspect-ratio:1/1;
+    transform:translate(-50%,-50%);
+    background:radial-gradient(circle,
+        rgba(230,185,108,.14) 0%,
+        rgba(125,107,174,.10) 32%,
+        rgba(125,107,174,.03) 56%,
+        transparent 76%);
+    pointer-events:none;
+    z-index:-1;
+    animation:latido 9s ease-in-out infinite alternate;
   }}
 </style>
 </head>
+
 <body>
-  <div class="caja">
-    <svg class="eclipse" width="44" height="44" viewBox="0 0 48 48" aria-hidden="true">
-      <circle cx="24" cy="24" r="15" fill="none" stroke="currentColor" stroke-width="1" opacity=".55"/>
-      <path d="M24 9a15 15 0 0 1 0 30" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/>
-    </svg>
+
+<!-- Las mismas tres capas de fondo que index.html.
+     cielo.js busca el canvas por su id y lo dibuja solo. -->
+<div class="cielo" aria-hidden="true">
+  <div class="cielo__nebulosa"></div>
+  <canvas id="cielo-estrellas"></canvas>
+  <div class="cielo__vineta"></div>
+</div>
+<div class="gracias__aura" aria-hidden="true"></div>
+
+<main class="gracias">
+  <div class="gracias__caja">
+    <img class="gracias__logo" src="{SITIO_URL}/assets/eclipse.png"
+         alt="Cosmos y Esencia" width="420" height="404">
     <h1>{html.escape(titular)}</h1>
-    <p>{texto}</p>
+    <p class="gracias__texto">{texto}</p>
     {botones_html}
-    <p class="nota">{nota}</p>
+    <p class="gracias__nota">{nota}</p>
   </div>
+</main>
+
+<script src="{SITIO_URL}/js/cielo.js" defer></script>
 </body>
 </html>"""
 
 
 def boton(url, etiqueta):
-    return f'<p><a class="btn" href="{html.escape(url, quote=True)}">{html.escape(etiqueta)}</a></p>'
+    return (f'<p><a class="btn btn--solid" href="{html.escape(url, quote=True)}">'
+            f'{html.escape(etiqueta)}</a></p>')
 
 
 def volver():
@@ -206,7 +232,8 @@ class handler(BaseHTTPRequestHandler):
                     "Llegaste a esta página sin un pago asociado. Si ya pagaste, "
                     "revisa tu correo: ahí está tu enlace de descarga.",
                     volver(),
-                    f'¿Necesitas ayuda? Escríbenos a <a href="mailto:{CORREO_CONTACTO}">{CORREO_CONTACTO}</a>.'
+                    f'¿Necesitas ayuda? Escríbenos a '
+                    f'<a href="mailto:{CORREO_CONTACTO}">{CORREO_CONTACTO}</a>.'
                 ))
 
             # Nunca confiamos en la URL: le preguntamos a Mercado Pago.
@@ -227,7 +254,8 @@ class handler(BaseHTTPRequestHandler):
                     "correo. Con pagos en efectivo o transferencia esto puede "
                     "tardar unas horas.",
                     volver(),
-                    f'Si pasan 24 horas y no llega, escríbenos a <a href="mailto:{CORREO_CONTACTO}">{CORREO_CONTACTO}</a> '
+                    f'Si pasan 24 horas y no llega, escríbenos a '
+                    f'<a href="mailto:{CORREO_CONTACTO}">{CORREO_CONTACTO}</a> '
                     f'con tu número de pago: {html.escape(payment_id)}'
                 ))
 
@@ -241,7 +269,8 @@ class handler(BaseHTTPRequestHandler):
                     "Estamos preparando tu descarga y te la enviamos por correo "
                     "en unos minutos.",
                     volver(),
-                    f'Si no llega, escríbenos a <a href="mailto:{CORREO_CONTACTO}">{CORREO_CONTACTO}</a> '
+                    f'Si no llega, escríbenos a '
+                    f'<a href="mailto:{CORREO_CONTACTO}">{CORREO_CONTACTO}</a> '
                     f'con tu número de pago: {html.escape(payment_id)}'
                 ))
 
@@ -271,7 +300,7 @@ class handler(BaseHTTPRequestHandler):
 
             return self._enviar(200, pagina(
                 "Tu cuaderno está listo",
-                f"Gracias por tu compra de <strong>{html.escape(producto['titulo'])}</strong>. "
+                f"Gracias por tu compra de <em>{html.escape(producto['titulo'])}</em>. "
                 "También te lo enviamos por correo.",
                 botones + volver(),
                 "El enlace es personal y caduca en 24 horas. Descarga el archivo "
@@ -284,7 +313,8 @@ class handler(BaseHTTPRequestHandler):
                 "Algo salió mal de nuestro lado",
                 "Si tu pago se completó, tu enlace va en camino por correo.",
                 volver(),
-                f'¿No llega? Escríbenos a <a href="mailto:{CORREO_CONTACTO}">{CORREO_CONTACTO}</a>.'
+                f'¿No llega? Escríbenos a '
+                f'<a href="mailto:{CORREO_CONTACTO}">{CORREO_CONTACTO}</a>.'
             ))
 
     def log_message(self, formato, *args):
