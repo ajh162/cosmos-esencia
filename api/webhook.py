@@ -95,6 +95,10 @@ CORREO_REMITENTE     = os.environ.get("CORREO_REMITENTE", "hola@cosmosyesencia.c
 # Gmail: no se usa para enviar, solo como destino del botón "Responder".
 CORREO_CONTACTO      = os.environ.get("CORREO_CONTACTO", "").strip()
 
+# La dirección del sitio. Se usa para traer el logo al correo: las imágenes
+# de un correo tienen que apuntar a una dirección pública y absoluta.
+SITIO_URL            = os.environ.get("SITIO_URL", "https://www.cosmosyesencia.com").rstrip("/")
+
 BUCKET = "ebooks"
 DURACION_ENLACE = 60 * 60 * 24  # 24 horas
 
@@ -218,38 +222,156 @@ def registrar_venta(supabase, datos):
 
 
 def enviar_correo(destinatario, titulo, enlaces):
-    """Manda el correo con los botones de descarga. Devuelve True si salió."""
+    """Manda el correo con los botones de descarga. Devuelve True si salió.
+
+    SOBRE EL DISEÑO DEL CORREO
+    -----------------------------------------------------------------------
+    Está armado con tablas y estilos escritos en cada etiqueta. Se ve
+    anticuado por dentro, pero es la única forma de que se vea igual en
+    Gmail, Outlook y Apple Mail: los clientes de correo ignoran las hojas de
+    estilo externas y varios ni siquiera soportan flexbox.
+
+    Tampoco se pueden usar las tipografías del sitio. Cormorant Garamond no
+    carga en correo, así que va Georgia: serif también, y la trae cualquier
+    equipo. El resultado se siente de la misma familia.
+
+    Los colores son los del manual de marca: noche #131A29, superficie
+    #232F4C, oro #E6B96C, lavanda #B9A8D6 y marfil #F7F3EE.
+    """
     if not RESEND_API_KEY:
         print("AVISO: RESEND_API_KEY vacío. Enlaces generados:", enlaces)
         return False
 
-    botones = "".join(
-        f'<p style="margin:18px 0"><a href="{u}" '
-        f'style="background:#131A29;color:#F7F3EE;padding:14px 28px;'
-        f'border-radius:999px;text-decoration:none;font-family:Arial,sans-serif;'
-        f'font-size:14px;letter-spacing:.12em">DESCARGAR PDF {i}</a></p>'
-        for i, u in enumerate(enlaces, start=1)
-    )
+    # --- Botones de descarga ---
+    # Van armados con tabla porque Outlook ignora el padding de un enlace
+    # suelto y el botón se ve como texto plano.
+    total = len(enlaces)
+    botones = ""
+    for i, u in enumerate(enlaces, start=1):
+        etiqueta = "Descargar tu cuaderno" if total == 1 else f"Descargar cuaderno {i}"
+        botones += f"""
+            <table role="presentation" cellpadding="0" cellspacing="0"
+                   style="margin:0 auto 12px">
+              <tr>
+                <td align="center" bgcolor="#E6B96C" style="border-radius:999px">
+                  <a href="{u}"
+                     style="display:inline-block;padding:15px 34px;
+                            font-family:Georgia,'Times New Roman',serif;
+                            font-size:15px;letter-spacing:.14em;
+                            text-transform:uppercase;color:#131A29;
+                            text-decoration:none">{etiqueta}</a>
+                </td>
+              </tr>
+            </table>"""
 
-    html = f"""
-    <div style="font-family:Georgia,serif;color:#374462;max-width:520px">
-      <h1 style="color:#131A29;font-weight:400">Tu cuaderno está listo</h1>
-      <p>Gracias por tu compra de <strong>{titulo}</strong>.</p>
-      {botones}
-      <p style="font-size:13px;color:#7D6BAE">
-        El enlace es personal y caduca en 24 horas. Descarga el archivo y
-        guárdalo en tu dispositivo. Si se venció antes de que lo abrieras,
-        responde a este correo y te enviamos uno nuevo.
-      </p>
-      <p style="font-size:12px;color:#7D6BAE">Cosmos y Esencia</p>
-    </div>
-    """
+    html = f"""<!DOCTYPE html>
+<html lang="es-MX">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tu cuaderno de Cosmos y Esencia</title>
+</head>
+<body style="margin:0;padding:0;background:#0B111D">
+
+<!-- Línea de vista previa: lo que se lee en la bandeja antes de abrir -->
+<div style="display:none;max-height:0;overflow:hidden;opacity:0">
+  Tu descarga de {titulo} ya está lista.
+</div>
+
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0"
+       bgcolor="#0B111D" style="background:#0B111D">
+  <tr>
+    <td align="center" style="padding:28px 12px">
+
+      <table role="presentation" width="600" cellpadding="0" cellspacing="0"
+             style="width:100%;max-width:600px">
+
+        <!-- ===================== CABECERA ===================== -->
+        <tr>
+          <td align="center" bgcolor="#131A29"
+              style="background:#131A29;border-radius:16px 16px 0 0;
+                     padding:40px 28px 34px">
+            <img src="{SITIO_URL}/assets/logo-completo.png"
+                 alt="Cosmos y Esencia" width="190"
+                 style="display:block;width:190px;max-width:66%;height:auto;border:0">
+            <div style="font-family:Georgia,'Times New Roman',serif;font-size:11px;
+                        letter-spacing:.32em;text-transform:uppercase;
+                        color:#E6B96C;padding-top:24px">Tu descarga está lista</div>
+            <div style="font-family:Georgia,'Times New Roman',serif;font-size:28px;
+                        color:#F7F3EE;padding-top:10px;line-height:1.3">
+              Tu cuaderno te espera
+            </div>
+          </td>
+        </tr>
+
+        <!-- Hilo dorado que separa la cabecera del cuerpo -->
+        <tr>
+          <td bgcolor="#E6B96C" style="background:#E6B96C;height:2px;
+                                       line-height:2px;font-size:0">&nbsp;</td>
+        </tr>
+
+        <!-- ===================== CUERPO ===================== -->
+        <tr>
+          <td bgcolor="#232F4C" style="background:#232F4C;padding:34px 30px 30px">
+
+            <p style="margin:0 0 26px;font-family:Georgia,'Times New Roman',serif;
+                      font-size:17px;line-height:1.7;color:#F7F3EE;text-align:center">
+              Gracias por tu compra de<br>
+              <span style="color:#E6B96C">{titulo}</span>
+            </p>
+
+            {botones}
+
+            <p style="margin:24px 0 0;font-family:Arial,Helvetica,sans-serif;
+                      font-size:13px;line-height:1.7;color:#B9A8D6;text-align:center">
+              El enlace es personal y caduca en 24 horas. Descarga el archivo y
+              guárdalo en tu dispositivo. Si se venció antes de que lo abrieras,
+              responde a este correo y te enviamos uno nuevo.
+            </p>
+
+          </td>
+        </tr>
+
+        <!-- ===================== PIE ===================== -->
+        <tr>
+          <td bgcolor="#131A29" align="center"
+              style="background:#131A29;border-radius:0 0 16px 16px;
+                     padding:26px 30px 30px">
+            <div style="font-family:Georgia,'Times New Roman',serif;font-size:13px;
+                        letter-spacing:.28em;text-transform:uppercase;color:#E6B96C">
+              Cosmos y Esencia
+            </div>
+            <div style="font-family:Arial,Helvetica,sans-serif;font-size:11px;
+                        line-height:1.7;color:#7D6BAE;padding-top:10px">
+              Energía, astrología y conexión interior
+            </div>
+          </td>
+        </tr>
+
+      </table>
+
+    </td>
+  </tr>
+</table>
+</body>
+</html>"""
+
+    # Versión en texto plano. Mejora la entregabilidad (los filtros desconfían
+    # de los correos que solo traen HTML) y sirve para quien lee sin formato.
+    texto = "COSMOS Y ESENCIA\n\nTu cuaderno te espera.\n\n"
+    texto += f"Gracias por tu compra de {titulo}.\n\n"
+    for i, u in enumerate(enlaces, start=1):
+        etiqueta = "Descarga" if total == 1 else f"Descarga {i}"
+        texto += f"- {etiqueta}: {u}\n"
+    texto += "\nEl enlace es personal y caduca en 24 horas.\n"
+    texto += "Si se vencio, responde a este correo y te enviamos uno nuevo.\n"
 
     cuerpo = {
         "from": f"Cosmos y Esencia <{CORREO_REMITENTE}>",
         "to": [destinatario],
         "subject": f"Tu descarga: {titulo}",
         "html": html,
+        "text": texto,
     }
 
     # A dónde va el mensaje cuando el comprador presiona "Responder".
